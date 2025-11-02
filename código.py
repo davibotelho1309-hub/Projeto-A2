@@ -1,10 +1,5 @@
 import streamlit as st
 
-
-requests
-pandas
-matplotlib
-google-api-python-client
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
