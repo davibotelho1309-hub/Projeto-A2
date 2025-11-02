@@ -2,8 +2,8 @@ import os
 import pandas as pd
 from collections import Counter
 import streamlit as st
-import basedosdados as bd
 import unicodedata
+import basedosdados as bd
 
 # ============================
 # CONFIGURAÇÕES
@@ -12,7 +12,7 @@ import unicodedata
 st.set_page_config(page_title="Análise de Temas Jurídicos - STF", page_icon="⚖️", layout="wide")
 
 # 🔹 Insira seu billing_id da Base dos Dados
-BILLING_ID = "<seu_billing_id>"
+BILLING_ID = "stf-data-477023"
 
 YEARS = list(range(2020, 2026))
 YOUTUBE_API_KEY = os.environ.get("AIzaSyASTN-AAwkkQMnpxDkzLCW4m-x8FH8n340")
