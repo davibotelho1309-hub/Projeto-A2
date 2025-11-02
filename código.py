@@ -5,10 +5,6 @@ requests
 pandas
 matplotlib
 google-api-python-client
-git clone https://github.com/seuusuario/senado-temas-historico.git
-cd senado-temas-historico
-pip install -r requirements.txt
-export YOUTUBE_API_KEY="AIzaSyASTN-AAwkkQMnpxDkzLCW4m-x8FH8n340"
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -37,7 +33,7 @@ from googleapiclient.discovery import build
 # ============================
 SENADO_BASE = "https://legis.senado.leg.br/dadosabertos/materia"
 YEARS = list(range(2020, 2026))
-YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY")  # Configure no ambiente GitHub
+YOUTUBE_API_KEY = os.environ.get("AIzaSyASTN-AAwkkQMnpxDkzLCW4m-x8FH8n340")  # Configure no ambiente GitHub
 
 # ============================
 # FUNÇÕES PRINCIPAIS
