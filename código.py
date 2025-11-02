@@ -20,7 +20,6 @@ import sys
 import requests
 import pandas as pd
 from collections import Counter
-from googleapiclient.discovery import build
 
 # ============================
 # CONFIGURAÇÕES GERAIS
