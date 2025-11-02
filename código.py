@@ -1,6 +1,5 @@
 import streamlit as st
 
-echo "# Projeto-A2" >> README.md
 git init
 git add README.md
 git commit -m "first commit"
