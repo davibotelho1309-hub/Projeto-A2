@@ -1,11 +1,6 @@
 import streamlit as st
 
-git init
-git add README.md
-git commit -m "first commit"
-git branch -M main
-git remote add origin https://github.com/davibotelho1309-hub/Projeto-A2.git
-git push -u origin main
+
 requests
 pandas
 matplotlib
