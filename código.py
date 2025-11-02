@@ -5,7 +5,6 @@ requests
 pandas
 matplotlib
 google-api-python-client
-```bash
 git clone https://github.com/seuusuario/senado-temas-historico.git
 cd senado-temas-historico
 pip install -r requirements.txt
