@@ -5,9 +5,6 @@ requests
 pandas
 matplotlib
 google-api-python-client
-.png
-.env
-.vscode/
 ```bash
 git clone https://github.com/seuusuario/senado-temas-historico.git
 cd senado-temas-historico
