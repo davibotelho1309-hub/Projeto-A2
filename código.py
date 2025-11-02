@@ -1,5 +1,3 @@
-pip install basedosdados
-
 import os
 import pandas as pd
 from collections import Counter
@@ -13,7 +11,7 @@ import unicodedata
 
 st.set_page_config(page_title="Análise de Temas Jurídicos - STF", page_icon="⚖️", layout="wide")
 
-# Insira seu billing_id da Base dos Dados
+# 🔹 Insira seu billing_id da Base dos Dados
 BILLING_ID = "<seu_billing_id>"
 
 YEARS = list(range(2020, 2026))
@@ -94,6 +92,7 @@ if st.button("🔍 Buscar decisões"):
         else:
             st.success(f"✅ {len(df)} decisões encontradas!")
 
+            # Exibir tabela
             st.dataframe(df)
 
             # --- Gráfico ---
