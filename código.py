@@ -1,5 +1,4 @@
 import streamlit as st
-!pip install matplotlib
 
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
@@ -20,7 +19,6 @@ import os
 import sys
 import requests
 import pandas as pd
-import matplotlib.pyplot as plt
 from collections import Counter
 from googleapiclient.discovery import build
 
