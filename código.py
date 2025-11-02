@@ -3,6 +3,7 @@ import requests
 import pandas as pd
 from collections import Counter
 import streamlit as st
+import unicodedata
 
 # ============================
 # CONFIGURAÇÕES INICIAIS
@@ -13,58 +14,75 @@ st.set_page_config(page_title="Análise Legislativa", page_icon="🏛️", layou
 SENADO_BASE = "https://legis.senado.leg.br/dadosabertos/materia/pesquisa"
 CAMARA_BASE = "https://dadosabertos.camara.leg.br/api/v2/proposicoes"
 YEARS = list(range(2020, 2026))
-
-# Chave da API do YouTube (defina como variável de ambiente)
 YOUTUBE_API_KEY = os.environ.get("AIzaSyASTN-AAwkkQMnpxDkzLCW4m-x8FH8n340")
-
 
 # ============================
 # FUNÇÕES AUXILIARES
 # ============================
 
+def normalizar_texto(texto):
+    """Remove acentos e coloca tudo em minúsculas."""
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', texto.lower())
+        if unicodedata.category(c) != 'Mn'
+    )
+
+
 def buscar_materias(keyword):
     """Busca matérias no Senado e, se falhar, usa a Câmara dos Deputados."""
     resultados = []
+    keyword_norm = normalizar_texto(keyword)
 
-    # --- TENTA SENADO ---
-    try:
-        params = {"palavraChave": keyword, "format": "json"}
-        r = requests.get(SENADO_BASE, params=params, timeout=10)
-        if r.ok:
-            data = r.json()
-            materias = data.get("PesquisaMateria", {}).get("Materias", {}).get("Materia", [])
-            for m in materias:
-                info = m.get("IdentificacaoMateria", {})
-                resultados.append({
-                    "ano": int(info.get("AnoMateria", 0)),
-                    "sigla": info.get("SiglaSubtipoMateria"),
-                    "numero": info.get("NumeroMateria"),
-                    "ementa": m.get("Ementa", ""),
-                    "url": f"https://www25.senado.leg.br/web/atividade/materias/-/materia/{info.get('CodigoMateria')}",
-                    "origem": "Senado"
-                })
-    except Exception as e:
-        st.warning(f"⚠️ Erro ao acessar API do Senado: {e}")
+    # 🔹 Tenta várias variações de busca
+    termos_busca = [keyword, keyword_norm, keyword.title(), keyword.upper()]
 
-    # --- SE FALHAR, USA CÂMARA ---
-    if not resultados:
+    st.info("🔹 Consultando API do Senado Federal...")
+    for termo in termos_busca:
         try:
-            r = requests.get(f"{CAMARA_BASE}?palavraChave={keyword}&itens=100", timeout=10)
+            params = {"palavraChave": termo, "format": "json"}
+            r = requests.get(SENADO_BASE, params=params, timeout=10)
             if r.ok:
                 data = r.json()
-                for p in data.get("dados", []):
+                materias = data.get("PesquisaMateria", {}).get("Materias", {}).get("Materia", [])
+                for m in materias:
+                    info = m.get("IdentificacaoMateria", {})
                     resultados.append({
-                        "ano": int(p.get("ano", 0)) if p.get("ano") else None,
-                        "sigla": p.get("siglaTipo"),
-                        "numero": p.get("numero"),
-                        "ementa": p.get("ementa", ""),
-                        "url": p.get("uri"),
-                        "origem": "Câmara"
+                        "ano": int(info.get("AnoMateria", 0)),
+                        "sigla": info.get("SiglaSubtipoMateria"),
+                        "numero": info.get("NumeroMateria"),
+                        "ementa": m.get("Ementa", ""),
+                        "url": f"https://www25.senado.leg.br/web/atividade/materias/-/materia/{info.get('CodigoMateria')}",
+                        "origem": "Senado"
                     })
-        except Exception as e:
-            st.error(f"Erro ao acessar API da Câmara: {e}")
+        except Exception:
+            pass
+        if resultados:
+            break
 
-    return [r for r in resultados if r.get("ano")]
+    # --- Se nada encontrado, tenta Câmara ---
+    if not resultados:
+        st.info("🔹 Nenhum resultado no Senado. Consultando a Câmara dos Deputados...")
+        for termo in termos_busca:
+            try:
+                r = requests.get(f"{CAMARA_BASE}?palavraChave={termo}&itens=100", timeout=10)
+                if r.ok:
+                    data = r.json()
+                    for p in data.get("dados", []):
+                        resultados.append({
+                            "ano": int(p.get("ano", 0)) if p.get("ano") else None,
+                            "sigla": p.get("siglaTipo"),
+                            "numero": p.get("numero"),
+                            "ementa": p.get("ementa", ""),
+                            "url": p.get("uri"),
+                            "origem": "Câmara"
+                        })
+            except Exception:
+                pass
+            if resultados:
+                break
+
+    resultados = [r for r in resultados if r.get("ano")]
+    return resultados
 
 
 def contar_por_ano(materias):
@@ -97,15 +115,17 @@ def buscar_videos_youtube(tema, max_results=5):
         st.warning(f"⚠️ Erro ao buscar vídeos no YouTube: {e}")
         return []
 
-
 # ============================
 # INTERFACE STREAMLIT
 # ============================
 
 st.title("🏛️ Análise de Temas no Congresso Nacional (2020–2025)")
-st.markdown("Pesquise como um tema foi abordado em projetos de lei no **Senado** e na **Câmara dos Deputados**, e veja sua evolução ao longo do tempo.")
+st.markdown(
+    "Pesquise como um tema foi abordado em projetos de lei no **Senado Federal** e na **Câmara dos Deputados**, "
+    "e visualize sua evolução ao longo dos anos."
+)
 
-tema = st.text_input("Digite o tema que deseja analisar:", placeholder="ex: inteligência artificial, meio ambiente, educação...")
+tema = st.text_input("Digite o tema que deseja analisar:", placeholder="ex: meio ambiente, educação, inteligência artificial...")
 
 if st.button("🔍 Buscar informações"):
     if not tema.strip():
@@ -115,23 +135,23 @@ if st.button("🔍 Buscar informações"):
             materias = buscar_materias(tema)
 
         if not materias:
-            st.error("Nenhuma matéria encontrada para esse tema.")
+            st.error("❌ Nenhuma matéria encontrada. Tente outro termo (ex: 'educacao', 'meio ambiente').")
         else:
-            st.success(f"{len(materias)} matérias encontradas!")
+            st.success(f"✅ {len(materias)} matérias encontradas!")
 
             df = pd.DataFrame(materias)
             st.dataframe(df[["ano", "sigla", "numero", "ementa", "origem", "url"]])
 
-            # --- Gráfico de Frequência ---
+            # --- Gráfico ---
             contagem = contar_por_ano(materias)
             fig, ax = plt.subplots(figsize=(8, 4))
             ax.bar(contagem.keys(), contagem.values(), color="#0056A3")
             ax.set_xlabel("Ano")
             ax.set_ylabel("Número de matérias")
-            ax.set_title(f"Distribuição de matérias sobre '{tema}' (2020–2025)")
+            ax.set_title(f"Evolução de matérias sobre '{tema}' (2020–2025)")
             st.pyplot(fig)
 
-            # --- Vídeos do YouTube ---
+            # --- YouTube ---
             st.subheader("🎥 Vídeos recomendados sobre o tema")
             videos = buscar_videos_youtube(tema)
             if videos:
