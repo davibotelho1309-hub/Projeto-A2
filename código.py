@@ -5,7 +5,7 @@ requests
 pandas
 matplotlib
 google-api-python-client
-*.png
+.png
 .env
 .vscode/
 ```bash
