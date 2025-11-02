@@ -9,7 +9,7 @@ import streamlit as st
 # ============================
 SENADO_BASE = "https://legis.senado.leg.br/dadosabertos/materia/pesquisa"
 YEARS = list(range(2020, 2026))
-YOUTUBE_API_KEY = os.environ.get(""AIzaSyASTN-AAwkkQMnpxDkzLCW4m-x8FH8n340)
+YOUTUBE_API_KEY = os.environ.get("AIzaSyASTN-AAwkkQMnpxDkzLCW4m-x8FH8n340")
 
 # ============================
 # FUNÇÕES AUXILIARES
