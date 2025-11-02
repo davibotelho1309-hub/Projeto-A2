@@ -5,7 +5,6 @@ requests
 pandas
 matplotlib
 google-api-python-client
-__pycache__/
 *.png
 .env
 .vscode/
