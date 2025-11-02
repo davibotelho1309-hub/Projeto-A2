@@ -5,35 +5,67 @@ from collections import Counter
 import streamlit as st
 
 # ============================
-# CONFIGURAÇÕES
+# CONFIGURAÇÕES INICIAIS
 # ============================
+
+st.set_page_config(page_title="Análise Legislativa", page_icon="🏛️", layout="wide")
+
 SENADO_BASE = "https://legis.senado.leg.br/dadosabertos/materia/pesquisa"
+CAMARA_BASE = "https://dadosabertos.camara.leg.br/api/v2/proposicoes"
 YEARS = list(range(2020, 2026))
+
+# Chave da API do YouTube (defina como variável de ambiente)
 YOUTUBE_API_KEY = os.environ.get("AIzaSyASTN-AAwkkQMnpxDkzLCW4m-x8FH8n340")
+
 
 # ============================
 # FUNÇÕES AUXILIARES
 # ============================
 
 def buscar_materias(keyword):
-    params = {"palavraChave": keyword, "format": "json"}
-    r = requests.get(SENADO_BASE, params=params, timeout=20)
-    if not r.ok:
-        return []
+    """Busca matérias no Senado e, se falhar, usa a Câmara dos Deputados."""
+    resultados = []
 
-    data = r.json()
-    materias = data.get("PesquisaMateria", {}).get("Materias", {}).get("Materia", [])
-    resultado = []
-    for m in materias:
-        info = m.get("IdentificacaoMateria", {})
-        resultado.append({
-            "ano": int(info.get("AnoMateria", 0)),
-            "sigla": info.get("SiglaSubtipoMateria"),
-            "numero": info.get("NumeroMateria"),
-            "ementa": m.get("Ementa", ""),
-            "url": f"https://www25.senado.leg.br/web/atividade/materias/-/materia/{info.get('CodigoMateria')}"
-        })
-    return resultado
+    # --- TENTA SENADO ---
+    try:
+        params = {"palavraChave": keyword, "format": "json"}
+        r = requests.get(SENADO_BASE, params=params, timeout=10)
+        if r.ok:
+            data = r.json()
+            materias = data.get("PesquisaMateria", {}).get("Materias", {}).get("Materia", [])
+            for m in materias:
+                info = m.get("IdentificacaoMateria", {})
+                resultados.append({
+                    "ano": int(info.get("AnoMateria", 0)),
+                    "sigla": info.get("SiglaSubtipoMateria"),
+                    "numero": info.get("NumeroMateria"),
+                    "ementa": m.get("Ementa", ""),
+                    "url": f"https://www25.senado.leg.br/web/atividade/materias/-/materia/{info.get('CodigoMateria')}",
+                    "origem": "Senado"
+                })
+    except Exception as e:
+        st.warning(f"⚠️ Erro ao acessar API do Senado: {e}")
+
+    # --- SE FALHAR, USA CÂMARA ---
+    if not resultados:
+        try:
+            r = requests.get(f"{CAMARA_BASE}?palavraChave={keyword}&itens=100", timeout=10)
+            if r.ok:
+                data = r.json()
+                for p in data.get("dados", []):
+                    resultados.append({
+                        "ano": int(p.get("ano", 0)) if p.get("ano") else None,
+                        "sigla": p.get("siglaTipo"),
+                        "numero": p.get("numero"),
+                        "ementa": p.get("ementa", ""),
+                        "url": p.get("uri"),
+                        "origem": "Câmara"
+                    })
+        except Exception as e:
+            st.error(f"Erro ao acessar API da Câmara: {e}")
+
+    return [r for r in resultados if r.get("ano")]
+
 
 def contar_por_ano(materias):
     contagem = Counter()
@@ -42,57 +74,65 @@ def contar_por_ano(materias):
             contagem[m["ano"]] += 1
     return {ano: contagem.get(ano, 0) for ano in YEARS}
 
+
 def buscar_videos_youtube(tema, max_results=5):
+    """Busca vídeos no YouTube relacionados ao tema."""
     if not YOUTUBE_API_KEY:
         return []
-    service = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
-    query = f"{tema} Senado Federal Congresso Brasil"
-    request = service.search().list(q=query, part="snippet", maxResults=max_results, type="video")
-    response = request.execute()
 
-    videos = []
-    for item in response.get("items", []):
-        videos.append({
-            "title": item["snippet"]["title"],
-            "url": f"https://www.youtube.com/watch?v={item['id']['videoId']}"
-        })
-    return videos
+    try:
+        service = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
+        query = f"{tema} Senado Federal Congresso Brasil"
+        request = service.search().list(q=query, part="snippet", maxResults=max_results, type="video")
+        response = request.execute()
+
+        videos = []
+        for item in response.get("items", []):
+            videos.append({
+                "title": item["snippet"]["title"],
+                "url": f"https://www.youtube.com/watch?v={item['id']['videoId']}"
+            })
+        return videos
+    except Exception as e:
+        st.warning(f"⚠️ Erro ao buscar vídeos no YouTube: {e}")
+        return []
+
 
 # ============================
 # INTERFACE STREAMLIT
 # ============================
 
-st.set_page_config(page_title="Análise de Temas no Senado", page_icon="🏛️", layout="wide")
-
 st.title("🏛️ Análise de Temas no Congresso Nacional (2020–2025)")
-tema = st.text_input("Digite o tema para análise (ex: inteligência artificial, meio ambiente...):")
+st.markdown("Pesquise como um tema foi abordado em projetos de lei no **Senado** e na **Câmara dos Deputados**, e veja sua evolução ao longo do tempo.")
 
-if st.button("Buscar informações"):
+tema = st.text_input("Digite o tema que deseja analisar:", placeholder="ex: inteligência artificial, meio ambiente, educação...")
+
+if st.button("🔍 Buscar informações"):
     if not tema.strip():
         st.warning("Por favor, insira um tema para continuar.")
     else:
-        st.info(f"🔎 Buscando matérias sobre **{tema}** no Senado...")
-        materias = buscar_materias(tema)
+        with st.spinner("Buscando matérias nas bases legislativas..."):
+            materias = buscar_materias(tema)
+
         if not materias:
-            st.error("Nenhuma matéria encontrada.")
+            st.error("Nenhuma matéria encontrada para esse tema.")
         else:
             st.success(f"{len(materias)} matérias encontradas!")
 
             df = pd.DataFrame(materias)
-            st.dataframe(df[["ano", "sigla", "numero", "ementa", "url"]])
+            st.dataframe(df[["ano", "sigla", "numero", "ementa", "origem", "url"]])
 
+            # --- Gráfico de Frequência ---
             contagem = contar_por_ano(materias)
-
-            # Gráfico
             fig, ax = plt.subplots(figsize=(8, 4))
-            ax.bar(contagem.keys(), contagem.values(), color="#0072B2")
+            ax.bar(contagem.keys(), contagem.values(), color="#0056A3")
             ax.set_xlabel("Ano")
             ax.set_ylabel("Número de matérias")
-            ax.set_title(f"Tema: {tema}")
+            ax.set_title(f"Distribuição de matérias sobre '{tema}' (2020–2025)")
             st.pyplot(fig)
 
-            # Vídeos do YouTube
-            st.subheader("🎥 Vídeos recomendados no YouTube")
+            # --- Vídeos do YouTube ---
+            st.subheader("🎥 Vídeos recomendados sobre o tema")
             videos = buscar_videos_youtube(tema)
             if videos:
                 for v in videos:
