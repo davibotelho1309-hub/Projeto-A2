@@ -2,18 +2,6 @@ import streamlit as st
 
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-main.py
---------------------------------
-Programa que:
-1. Usa a API de Dados Abertos do Senado Federal para buscar matérias por tema.
-2. Gera um gráfico com a quantidade de matérias por ano (2020–2025).
-3. Usa a YouTube Data API v3 para recomendar vídeos sobre o tema.
---------------------------------
-Autor: Davi + ChatGPT
-Versão: 1.0
-Licença: MIT
-"""
 
 import os
 import sys
