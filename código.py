@@ -12,7 +12,7 @@ import basedosdados as bd
 st.set_page_config(page_title="Análise de Temas Jurídicos - STF", page_icon="⚖️", layout="wide")
 
 # 🔹 Insira seu billing_id da Base dos Dados
-BILLING_ID = "stf-data-477023"
+BILLING_ID = "basedosdados"
 
 YEARS = list(range(2020, 2026))
 YOUTUBE_API_KEY = os.environ.get("AIzaSyASTN-AAwkkQMnpxDkzLCW4m-x8FH8n340")
